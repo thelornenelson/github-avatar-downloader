@@ -17,5 +17,9 @@ function getRepoContributors(repoOwner, repoName, cb) {
 
 getRepoContributors("nodejs", "node", function(err, result){
   console.log("Errors: ", err);
-  console.log("Result: ", result);
+  var results = JSON.parse(result);
+  results.forEach(function(element){
+    console.log("Avatar URL for " + element.login + " is " + element.avatar_url);
+  });
+
 });
