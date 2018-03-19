@@ -32,19 +32,24 @@ function downloadImageByURL(url, filePath) {
   .pipe(fs.createWriteStream(filePath));
 }
 
-getRepoContributors("nodejs", "node", function(err, result){
-  // log errors, or null if no errors
-  console.log("Errors: ", err);
+if(process.argv[2] && process.argv[3]){
 
-  // parse the results string
-  var results = JSON.parse(result);
+  getRepoContributors(process.argv[2], process.argv[3], function(err, result){
+    // log errors, or null if no errors
+    console.log("Errors: ", err);
 
-  // iterate over results and output avatar urls
-  results.forEach(function(element){
-    console.log("Avatar URL for " + element.login + " is " + element.avatar_url);
+    // parse the results string
+    var results = JSON.parse(result);
 
-    // download and save avatar, assuming jpg format
-    downloadImageByURL(element.avatar_url, "avatars/" + element.login + ".jpg");
+    // iterate over results and output avatar urls
+    results.forEach(function(element){
+      console.log("Avatar URL for " + element.login + " is " + element.avatar_url);
+
+      // download and save avatar, assuming jpg format
+      downloadImageByURL(element.avatar_url, "avatars/" + element.login + ".jpg");
+    });
+
   });
-
-});
+} else {
+  console.log("Error: include repo owner and repo name");
+}
