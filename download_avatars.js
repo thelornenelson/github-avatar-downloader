@@ -1,13 +1,18 @@
+// these are required for https and filesystem handling
 var request = require('request');
 var fs = require('fs');
-var secrets = require('./secrets');
 
+// this loads environment variables, in this case the GITHUB_TOKEN
+require('dotenv').config();
+
+// retrieves list of GitHub repo contributors for <repoOwner>/<repoName> and executes
+// cb function on returned body (body is JSON array of objects corresponding to contributors)
 function getRepoContributors(repoOwner, repoName, cb) {
   var options = {
     url: "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/contributors",
     headers: {
       'User-Agent': 'request',
-      'Authorization': 'token ' + secrets.GITHUB_TOKEN
+      'Authorization': 'token ' + process.env.GITHUB_TOKEN
     }
   };
 
@@ -16,12 +21,13 @@ function getRepoContributors(repoOwner, repoName, cb) {
   })
 }
 
+// downloads and saves image stored at url to local filePath.
 function downloadImageByURL(url, filePath) {
   var options = {
     url: url,
     headers: {
       'User-Agent': 'request',
-      'Authorization': 'token ' + secrets.GITHUB_TOKEN
+      'Authorization': 'token ' + process.env.GITHUB_TOKEN
     }
   };
 
@@ -32,24 +38,43 @@ function downloadImageByURL(url, filePath) {
   .pipe(fs.createWriteStream(filePath));
 }
 
-if(process.argv[2] && process.argv[3]){
+var saveAvatars = function(err, result){
+  // set directory to save avatars
+  var avatarDir = "./avatars/";
 
-  getRepoContributors(process.argv[2], process.argv[3], function(err, result){
-    // log errors, or null if no errors
-    console.log("Errors: ", err);
+  // log errors, or null if no errors
+  console.log("Errors: ", err);
 
-    // parse the results string
-    var results = JSON.parse(result);
+  // parse the results string
+  var results = JSON.parse(result);
 
-    // iterate over results and output avatar urls
-    results.forEach(function(element){
-      console.log("Avatar URL for " + element.login + " is " + element.avatar_url);
+  // attempt to read the desired destination directory
+  fs.readdir(avatarDir, function(err){
+    if(err){
+      // if unable to read, create directory
+      fs.mkdir(avatarDir, function(){
+        console.log("Directory not found, creating directory" + avatarDir);
+      });
+    } else {
+      // if directory read was successful, directory already exists
+      // iterate over results and download and save images
+      results.forEach(function(element){
+        console.log("Avatar URL for " + element.login + " is " + element.avatar_url);
 
-      // download and save avatar, assuming jpg format
-      downloadImageByURL(element.avatar_url, "avatars/" + element.login + ".jpg");
-    });
+        // download and save avatar, assuming jpg format
+        downloadImageByURL(element.avatar_url, avatarDir + element.login + ".jpg");
+      });
+    }
 
   });
+};
+
+
+// check to make sure 2 inputs were read from command line.
+if(process.argv[2] && process.argv[3]){
+
+  getRepoContributors(process.argv[2], process.argv[3], saveAvatars);
+
 } else {
   console.log("Error: include repo owner and repo name");
 }
