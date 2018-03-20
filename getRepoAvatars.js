@@ -6,7 +6,8 @@ var fs = require('fs');
 var dotenv = require('dotenv').config();
 
 // retrieves list of GitHub repo contributors for <repoOwner>/<repoName> and executes
-// cb function on returned body (body is JSON array of objects corresponding to contributors)
+// cb function on returned body (body is array of objects corresponding to contributors)
+// this assumes json: true option is passed
 function getRepoContributors(repoOwner, repoName, cb, options) {
   options.url = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/contributors";
 
@@ -14,10 +15,10 @@ function getRepoContributors(repoOwner, repoName, cb, options) {
     if(err){
       console.log(err);
     } else {
+      //check response code, if 404 then log "unable to find user/repo";
       if(result.statusCode == '404'){
         console.log("Unable to find /" + repoOwner + "/" + repoName);
       } else {
-        //check response code, if 404 then log "unable to find user/repo";
         cb(err, body);
       }
     }
