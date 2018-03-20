@@ -7,17 +7,8 @@ var dotenv = require('dotenv').config();
 
 // retrieves list of GitHub repo contributors for <repoOwner>/<repoName> and executes
 // cb function on returned body (body is JSON array of objects corresponding to contributors)
-function getRepoContributors(repoOwner, repoName, cb) {
-  var options = {
-    url: "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/contributors",
-    headers: {
-    'User-Agent': 'request',
-    }
-  };
-
-  if(process.env.GITHUB_TOKEN){
-    options.headers.Authorization = 'token ' + process.env.GITHUB_TOKEN;
-  }
+function getRepoContributors(repoOwner, repoName, cb, options) {
+  options.url = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/contributors";
 
   request(options, function(err, result, body){
     if(err){
@@ -34,17 +25,8 @@ function getRepoContributors(repoOwner, repoName, cb) {
 }
 
 // downloads and saves image stored at url to local filePath.
-function downloadImageByURL(url, filePath) {
-  var options = {
-    url: url,
-    headers: {
-      'User-Agent': 'request',
-    }
-  };
-
-  if(process.env.GITHUB_TOKEN){
-    options.headers.Authorization = 'token ' + process.env.GITHUB_TOKEN;
-  }
+function downloadImageByURL(url, filePath, options) {
+  options.url = url;
 
   request.get(options)
   .on('error', function(err){
@@ -58,7 +40,6 @@ function downloadImageByURL(url, filePath) {
 
 // callback function to save Avatars to local disk.
 var saveAvatars = function(err, result){
-  // set directory to save avatars
   var avatarDir = "./avatars/";
 
   // log errors, if any
@@ -66,8 +47,6 @@ var saveAvatars = function(err, result){
     console.log("Errors: ", err);
   }
 
-  // parse the results string
-  var results = JSON.parse(result);
 
   // attempt to read the desired destination directory
   try {
@@ -83,19 +62,28 @@ var saveAvatars = function(err, result){
 
   // if directory read was successful, directory already exists
   // iterate over results and download and save images
-  results.forEach(function(element){
+  result.forEach(function(element){
     // console.log("Avatar URL for " + element.login + " is " + element.avatar_url);
 
     // download and save avatar, assuming jpg format
-    downloadImageByURL(element.avatar_url, avatarDir + element.login + ".jpg");
+    downloadImageByURL(element.avatar_url, avatarDir + element.login + ".jpg", options);
   });
+};
+
+var options = {
+  json: true,
+  headers: {
+    'User-Agent': 'request',
+  }
 };
 
 // check to confirm .env loaded correctly
 if(dotenv.error){
   console.log(".env file missing or invalid. Let's try to continue without authorization.");
+} else {
+  options.headers.Authorization = 'token ' + process.env.GITHUB_TOKEN;
 }
 
 module.exports = function(repoOwner, repoName){
-  getRepoContributors(repoOwner, repoName, saveAvatars)
+  getRepoContributors(repoOwner, repoName, saveAvatars, options)
 }
